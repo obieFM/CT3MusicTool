@@ -28,7 +28,8 @@ static void MakeFiles(const vector<string>& Files, const vector<int>& OutputIDs)
     // Get output file paths -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
     vector<string> OutputFiles;
-    for (int id : OutputIDs) {
+    for (int id : OutputIDs)
+    {
         stringstream ss;
         ss << "Media/Music/m" << setw(2) << setfill('0') << id << ".ogg";
         OutputFiles.push_back(ss.str());
