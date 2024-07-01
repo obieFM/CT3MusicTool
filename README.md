@@ -1,7 +1,8 @@
 ![](https://raw.githubusercontent.com/obieFM/CT3MusicTool/main/banner.png)
 
 # CT3MusicTool
-**Launcher for Crazy Taxi 3 that allows custom music and shuffling music.**<br>
+**A lightweight hook for Crazy Taxi 3 that allows custom music and shuffling music.<br>
+No more listening to the same three songs in the same order every time you play!**<br>
 Uses ffmpeg to shuffle your music files together, overwriting the music files in the Media/Music directory.
 
 ## Installation
