@@ -129,16 +129,13 @@ int main()
         if (!bShuffled || ((Value == 0) && !bShouldShuffle))
         {
             bShuffled = true;
-
             cout << "Shuffling music...\n";
 
             // Make 3 playlists containing all the songs.
 
             vector<vector<string>> Playlists(SongIDs.size());
             for (vector<string>& Playlist : Playlists)
-            {
                 SetupShuffle(Playlist);
-            }
 
             // Where each playlist meets, make sure the same song doesn't play back-to-back.
             // Also check that each playlist starts with a unique song (for Crazy X).
@@ -164,7 +161,6 @@ int main()
         }
 
         bShouldShuffle = (Value == 0);
-
         Sleep(200);
     }
 
