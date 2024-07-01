@@ -5,6 +5,8 @@
 No more listening to the same three songs in the same order every time you play!**<br>
 Uses ffmpeg to shuffle your music files together, overwriting the music files in the Media/Music directory.
 
+This tool is only compatible with the original PC port of Crazy Taxi 3: High Roller.
+
 ## Installation
 - Extract latest release to the same directory as CT3.exe.
 - Replace .ogg files in "CustomMusic" folder with your own tracks if desired.
