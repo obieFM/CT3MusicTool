@@ -6,9 +6,9 @@
 #include <random>
 #include <unordered_set>
 
-#define cout std::cout
-
 #define ErrorExit(Text) { cout << "Error: " << Text << "\n"; cin.get(); return 1; }
+
+#define cout std::cout
 
 using namespace std;
 
@@ -22,7 +22,7 @@ static const vector<vector<int>> SongIDs = { { 3, 8, 13 }, { 4, 9, 14 }, { 5, 10
 
 // Requires ffmpeg.exe! //
 
-static void MakeFiles(const vector<string>& Files, const vector<int>& OutputIDs)
+static void MakeFiles(const vector<string_view>& Files, const vector<int>& OutputIDs)
 {
 
     // Get output file paths -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -35,18 +35,16 @@ static void MakeFiles(const vector<string>& Files, const vector<int>& OutputIDs)
         OutputFiles.push_back(ss.str());
     }
 
-
     // Parse input .ogg files =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
     stringstream ss;
     ss << "ffmpeg -hide_banner -loglevel quiet -y -i \"concat:";
-    for (const string& File : Files)
+    for (const string_view& File : Files)
     {
         ss << "CustomMusic/" << File;
         if (File != Files.back())
             ss << "|";
     }
-
 
     // Send ffmpeg command -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -104,15 +102,17 @@ int main()
 
     random_device rd;
     mt19937 Generator(rd());
-    auto Shuffle = [&Generator](vector<string>& Playlist)
+    auto Shuffle = [&Generator](vector<string_view>& Playlist)
     {
         shuffle(Playlist.begin(), Playlist.end(), Generator);
     };
-    auto SetupShuffle = [&Shuffle](vector<string>& Playlist)
+    auto SetupShuffle = [&Shuffle](vector<string_view>& Playlist)
     {
         Playlist.assign(Songs.begin(), Songs.end());
         Shuffle(Playlist);
     };
+
+    const size_t PlaylistCt = SongIDs.size();
 
 
     // Begin checking process memory -=-=-=-=-=-=-=-=-=-=-=-=-
@@ -123,7 +123,6 @@ int main()
     while (GetExitCodeProcess(pi.hProcess, &exitCode) && exitCode == STILL_ACTIVE)
     {
 
-
         // Shuffle music upon reaching menu =-=-=-=-=-=-=-=-=-
 
         ReadProcessMemory(pi.hProcess, (void*) 0x00697998, &Value, sizeof(Value), 0);
@@ -132,31 +131,50 @@ int main()
             bShuffled = true;
             cout << "Shuffling music...\n";
 
-            // Make 3 playlists containing all the songs.
+            // Make playlists containing all the songs.
 
-            vector<vector<string>> Playlists(SongIDs.size());
-            for (vector<string>& Playlist : Playlists)
+            vector<vector<string_view>> Playlists(PlaylistCt);
+            for (vector<string_view>& Playlist : Playlists)
                 SetupShuffle(Playlist);
 
             // Where each playlist meets, make sure the same song doesn't play back-to-back.
-            // Also check that each playlist starts with a unique song (for Crazy X).
+            // Also check that each playlist starts with a unique song.
 
-            while (true)
+            int ShufflesFinished{};
+            do
             {
-                if (Playlists[0].back() == Playlists[1].front())
-                    Shuffle(Playlists[0]);
-                else if (Playlists[1].back() == Playlists[2].front() || Playlists[1].front() == Playlists[0].front())
-                    Shuffle(Playlists[1]);
-                else if (Playlists[2].back() == Playlists[0].front() || Playlists[2].front() == Playlists[1].front() || Playlists[2].front() == Playlists[0].front())
-                    Shuffle(Playlists[2]);
-                else break;
+                for (int i = 0; i < PlaylistCt; i++)
+                {
+                    if (Playlists[i].back() == Playlists[(i < PlaylistCt - 1) ? (i + 1) : 0].front())
+                        Shuffle(Playlists[i]);
+                    else
+                    {
+                        bool MatchesFront{};
+                        const string_view& MyFront = Playlists[i].front();
+                        for (int j = 0; j < i; j++)
+                        {
+                            if (MyFront == Playlists[j].front())
+                            {
+                                MatchesFront = true;
+                                break;
+                            }
+                        }
+                        if (!MatchesFront)
+                            ShufflesFinished++;
+                    }
+                    if (ShufflesFinished == 0)
+                        break;
+                }
             }
+            while (ShufflesFinished != PlaylistCt);
+
+            // Render the audio files.
             
-            vector<thread> ShuffleThreads;
-            for (int i = 0; i < Playlists.size(); i++)
-                ShuffleThreads.emplace_back(MakeFiles, Playlists[i], SongIDs[i]);
-            for (thread& ShuffleThread : ShuffleThreads)
-                ShuffleThread.join();
+            vector<thread> Threads;
+            for (int i = 0; i < PlaylistCt; i++)
+                Threads.emplace_back(MakeFiles, Playlists[i], SongIDs[i]);
+            for (thread& Thread : Threads)
+                Thread.join();
 
             cout << "Shuffle complete.\n";
         }
