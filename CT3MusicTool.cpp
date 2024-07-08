@@ -3,21 +3,20 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 #include <random>
 #include <unordered_set>
 
 #define ErrorExit(Text) { cout << "Error: " << Text << "\n"; cin.get(); return 1; }
 
-#define cout std::cout
-
 using namespace std;
-
-static unordered_set<string> Songs;
 
 // West Coast:     m03.ogg, m04.ogg, m05.ogg
 // Glitter Oasis:  m08.ogg, m09.ogg, m10.ogg
 // Small Apple:    m13.ogg, m14.ogg, m15.ogg
 static const vector<vector<int>> SongIDs = { { 3, 8, 13 }, { 4, 9, 14 }, { 5, 10, 15 } };
+
+static const string MusicDir = "CustomMusic";
 
 
 // Requires ffmpeg.exe! //
@@ -28,37 +27,30 @@ static void MakeFiles(const vector<string_view>& Files, const vector<int>& Outpu
     // Get output file paths -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
     vector<string> OutputFiles;
-    for (int ID : OutputIDs)
-    {
-        stringstream ss;
-        ss << "Media/Music/m" << setw(2) << setfill('0') << ID << ".ogg";
-        OutputFiles.push_back(ss.str());
-    }
+    transform(OutputIDs.begin(), OutputIDs.end(), back_inserter(OutputFiles), [](int ID) {
+        return format("Media/Music/m{:02d}.ogg", ID);
+    });
+
 
     // Parse input .ogg files =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    stringstream ss;
-    ss << "ffmpeg -hide_banner -loglevel quiet -y -i \"concat:";
-    for (const string_view& File : Files)
-    {
-        ss << "CustomMusic/" << File;
-        if (File != Files.back())
-            ss << "|";
-    }
+    string InputFiles = accumulate(Files.begin(), Files.end(), string(),
+        [](const string_view& a, const string_view& b) { return a.data() + MusicDir + "/" + b.data() + "|"; });
+    InputFiles.pop_back();
+
 
     // Send ffmpeg command -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    ss << "\" -c copy " << OutputFiles[0];
-    system(ss.str().c_str());
+    system(format("ffmpeg -hide_banner -loglevel quiet -y -i \"concat:{}\" -c copy {}",
+        InputFiles, OutputFiles[0]).c_str());
 
 
     // Copy ffmpeg output to remaining output files =-=-=-=-
 
+    ifstream Input(OutputFiles[0], ios::binary);
     vector<ofstream> Outputs;
     for (size_t i = 1; i < OutputFiles.size(); i++)
-        Outputs.emplace_back(ofstream(OutputFiles[i], ios::binary));
-
-    ifstream Input(OutputFiles[0], ios::binary);
+        Outputs.emplace_back(OutputFiles[i], ios::binary);
 
     const size_t BufferSize = 4096;
     char Buffer[BufferSize];
@@ -87,10 +79,11 @@ int main()
 
     // Get songs in the CustomMusic folder -=-=-=-=-=-=-=-=-=-
 
-    const filesystem::directory_iterator end{};
-    for (filesystem::directory_iterator iter{"CustomMusic"}; iter != end; ++iter)
-        if (filesystem::is_regular_file(*iter) && iter->path().extension() == ".ogg")
-            Songs.emplace(iter->path().filename().string());
+    unordered_set<string_view> Songs;
+
+    for (const auto& entry : filesystem::directory_iterator(MusicDir))
+        if (entry.is_regular_file() && entry.path().extension() == ".ogg")
+            Songs.insert(entry.path().filename().string());
 
     const size_t PlaylistCt = SongIDs.size();
 
@@ -109,7 +102,7 @@ int main()
     {
         shuffle(Playlist.begin(), Playlist.end(), Generator);
     };
-    auto SetupShuffle = [&Shuffle](vector<string_view>& Playlist)
+    auto SetupShuffle = [&Shuffle, &Songs](vector<string_view>& Playlist)
     {
         Playlist.assign(Songs.begin(), Songs.end());
         Shuffle(Playlist);
@@ -126,7 +119,7 @@ int main()
 
         // Shuffle music upon reaching menu =-=-=-=-=-=-=-=-=-
 
-        ReadProcessMemory(pi.hProcess, (void*) 0x00697998, &Value, sizeof(Value), 0);
+        ReadProcessMemory(pi.hProcess, (LPVOID) 0x00697998, &Value, sizeof(Value), nullptr);
         if (!bShuffled || ((Value == 0) && !bShouldShuffle))
         {
             bShuffled = true;
