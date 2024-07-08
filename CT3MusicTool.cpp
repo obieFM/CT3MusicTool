@@ -28,10 +28,10 @@ static void MakeFiles(const vector<string_view>& Files, const vector<int>& Outpu
     // Get output file paths -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
     vector<string> OutputFiles;
-    for (int id : OutputIDs)
+    for (int ID : OutputIDs)
     {
         stringstream ss;
-        ss << "Media/Music/m" << setw(2) << setfill('0') << id << ".ogg";
+        ss << "Media/Music/m" << setw(2) << setfill('0') << ID << ".ogg";
         OutputFiles.push_back(ss.str());
     }
 
@@ -52,18 +52,19 @@ static void MakeFiles(const vector<string_view>& Files, const vector<int>& Outpu
     system(ss.str().c_str());
 
 
-    // Copy ffmpeg output to remaining 2 output files =-=-=-=-
+    // Copy ffmpeg output to remaining output files =-=-=-=-
 
-    ifstream input(OutputFiles[0], ios::binary);
-    ofstream output1(OutputFiles[1], ios::binary);
-    ofstream output2(OutputFiles[2], ios::binary);
+    vector<ofstream> Outputs;
+    for (size_t i = 1; i < OutputFiles.size(); i++)
+        Outputs.emplace_back(ofstream(OutputFiles[i], ios::binary));
 
-    char buffer[4096];
-    while (input.read(buffer, sizeof(buffer)))
-    {
-        output1.write(buffer, input.gcount());
-        output2.write(buffer, input.gcount());
-    }
+    ifstream Input(OutputFiles[0], ios::binary);
+
+    const size_t BufferSize = 4096;
+    char Buffer[BufferSize];
+    while (Input.read(Buffer, BufferSize))
+        for (ofstream& Output : Outputs)
+            Output.write(Buffer, Input.gcount());
 
 }
 
@@ -91,8 +92,10 @@ int main()
         if (filesystem::is_regular_file(*iter) && iter->path().extension() == ".ogg")
             Songs.emplace(iter->path().filename().string());
 
-    if (Songs.size() < 4)
-        ErrorExit("Not enough songs found in music directory (need at least 4 .ogg files).");
+    const size_t PlaylistCt = SongIDs.size();
+
+    if (Songs.size() < PlaylistCt)
+        ErrorExit("Not enough songs found in music directory (need at least " << PlaylistCt << " .ogg files).");
 
     cout << Songs.size() << " songs found in music directory.\n";
     for (int i = 0; i < 17; i++) cout << "-="; cout << "-\n";
@@ -111,8 +114,6 @@ int main()
         Playlist.assign(Songs.begin(), Songs.end());
         Shuffle(Playlist);
     };
-
-    const size_t PlaylistCt = SongIDs.size();
 
 
     // Begin checking process memory -=-=-=-=-=-=-=-=-=-=-=-=-
