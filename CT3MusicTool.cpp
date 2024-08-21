@@ -142,17 +142,17 @@ int main()
                         Shuffle(Playlists[i]);
                     else
                     {
-                        bool MatchesFront{};
+                        bool bMatchesFront{};
                         const string_view& MyFront = Playlists[i].front();
                         for (int j = 0; j < i; j++)
                         {
                             if (MyFront == Playlists[j].front())
                             {
-                                MatchesFront = true;
+                                bMatchesFront = true;
                                 break;
                             }
                         }
-                        if (!MatchesFront)
+                        if (!bMatchesFront)
                             ShufflesFinished++;
                     }
                     if (ShufflesFinished == 0)
