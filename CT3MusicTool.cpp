@@ -7,8 +7,6 @@
 #include <random>
 #include <unordered_set>
 
-#define ErrorExit(Text) { cout << "Error: " << Text << "\n"; cin.get(); return 1; }
-
 using namespace std;
 
 // West Coast:     m03.ogg, m04.ogg, m05.ogg
@@ -62,6 +60,7 @@ static void MakeFiles(const vector<string_view>& Files, const vector<int>& Outpu
 
 int main()
 {
+    #define ErrorExit(Text) { cout << "Error: " << Text << "\n"; cin.get(); return 1; }
 
     // Start CT3.exe -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
